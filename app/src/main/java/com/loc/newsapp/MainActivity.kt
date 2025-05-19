@@ -1,54 +1,49 @@
 package com.loc.newsapp
 
 import android.os.Bundle
-import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.viewModels
 import androidx.compose.foundation.background
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.graphics.Color
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.core.view.WindowCompat
-import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.lifecycle.lifecycleScope
-import com.loc.newsapp.domain.useCases.AppEntryUseCases
-import com.loc.newsapp.presentation.onBoarding.OnBoardingScreen
-import com.loc.newsapp.presentation.onBoarding.OnBoardingViewModel
-import com.loc.newsapp.presentation.onBoarding.component.OnBoardingPage
+import com.google.accompanist.systemuicontroller.rememberSystemUiController
+import com.loc.newsapp.presentation.navGraph.NavGraph
 import com.loc.newsapp.ui.theme.NewsAppTheme
 import dagger.hilt.android.AndroidEntryPoint
-import kotlinx.coroutines.launch
-import javax.inject.Inject
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
-    @Inject
-    lateinit var useCases: AppEntryUseCases
+
+    private val viewModel by viewModels<MainViewModel>()
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         WindowCompat.setDecorFitsSystemWindows(window, false)
-        installSplashScreen()
-
-        lifecycleScope.launch {
-            useCases.readAppEntry().collect{
-                Log.d("test",it.toString())
-            }
+        installSplashScreen().apply {
+            setKeepOnScreenCondition(condition = { viewModel.splashCondition.value })
         }
         setContent {
             NewsAppTheme {
-                Box(modifier = Modifier.background(color = MaterialTheme.colorScheme.background)) {
-                   val viewMode:OnBoardingViewModel = hiltViewModel()
-                    OnBoardingScreen(
-                        event = viewMode ::onEvent
+
+                val isSystemInDark = isSystemInDarkTheme()
+                val systemController = rememberSystemUiController()
+
+                SideEffect {
+                    systemController.setSystemBarsColor(
+                        color = Color.Transparent,
+                        darkIcons = !isSystemInDark
                     )
                 }
-
+                Box(modifier = Modifier.background(MaterialTheme.colorScheme.background)) {
+                    NavGraph(startDestination = viewModel.startDestination.value)
+                }
             }
         }
     }
